@@ -73,6 +73,28 @@ Abra pelo endereço encaminhado da porta **5173**, na aba **Portas**. O Vite enc
 
 O backend permite automaticamente a origem exata da porta 5173 do próprio Codespace, usando `CODESPACE_NAME` e `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN`. Se executar fora desse ambiente com outro endereço, acrescente a origem exata em `CORS_ORIGINS` e reinicie o backend.
 
+#### Erro 403: Origem não permitida
+
+No ambiente Codespaces testado, o navegador enviava a origem externa do frontend, mas o backend recebia `Origin: https://localhost:5173` após o encaminhamento. HTTP e HTTPS são origens diferentes para CORS. Por isso, o modelo inclui explicitamente as duas variantes:
+
+```env
+CORS_ORIGINS=http://localhost:5173,https://localhost:5173,http://127.0.0.1:5173
+```
+
+Se você já possui `backend/.env`, atualize somente a linha `CORS_ORIGINS`, preservando outras origens confiáveis que utiliza. Atualizar o repositório ou o `.env.example` **não atualiza seu `.env` local**. Salve e reinicie o backend com `Ctrl+C` e `npm start` na pasta `backend`.
+
+Quando precisar adicionar uma origem externa manualmente, copie o endereço do seu frontend, somente com protocolo e host/porta, sem caminho e sem barra final. Acrescente-o à lista separado por vírgula. Não use `*` nem libere todo o domínio `app.github.dev`.
+
+Tornar a porta pública não resolve a validação de CORS. Para uso próprio, mantenha a porta 5173 privada e acesse com sua conta do GitHub. A porta 3000 não precisa ser publicada para o proxy interno funcionar.
+
+Para verificar a origem HTTPS diretamente na API, execute em outro terminal do Codespace:
+
+```bash
+curl -i http://127.0.0.1:3000/api/tasks -H 'Origin: https://localhost:5173'
+```
+
+Sem token, o resultado esperado é **401**, acompanhado de `Access-Control-Allow-Origin: https://localhost:5173`: a origem foi aceita e a autenticação bloqueou corretamente o acesso. Um **403** indica que a origem continua bloqueada. Se só o acesso pelo navegador falhar, confira o Origin efetivamente recebido pelo backend; o cabeçalho mostrado no navegador pode ser anterior ao encaminhamento.
+
 A porta do Vite é fixa: se a 5173 estiver ocupada, ele avisa e encerra. Pare a instância anterior com `Ctrl+C` antes de iniciar outra. Mantenha apenas um backend e um frontend.
 
 ## Uso
