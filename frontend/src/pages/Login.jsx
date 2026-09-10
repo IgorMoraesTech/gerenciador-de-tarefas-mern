@@ -1,77 +1,48 @@
-import React, { useState } from 'react';
-import { api } from '../services/api';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { api, errorMessage } from '../services/api';
 export function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true); setError(''); setNotice('');
     try {
       if (isLogin) {
-        const response = await api.post('/auth/login', { email, password });
-        localStorage.setItem('token', response.data.token);
-        navigate('/dashboard');
+        const { data } = await api.post('/auth/login', { email, password });
+        localStorage.setItem('token', data.token);
+        navigate('/dashboard', { replace: true });
       } else {
         await api.post('/auth/register', { name, email, password });
-        alert('Cadastro realizado com sucesso! Faça login.');
-        setIsLogin(true);
+        setPassword(''); setIsLogin(true);
+        setNotice('Cadastro realizado. Entre com seu e-mail e senha.');
       }
-    } catch (err) {
-      setError(err.response?.data?.error || 'Ocorreu um erro. Tente novamente.');
-    }
+    } catch (error) { setError(errorMessage(error)); }
+    finally { setBusy(false); }
   };
-
-  return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', fontFamily: 'Arial' }}>
-      <h2>{isLogin ? 'Entrar no Sistema' : 'Criar Nova Conta'}</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {!isLogin && (
-          <input
-            type="text"
-            placeholder="Nome Completo"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            style={{ padding: '8px' }}
-          />
-        )}
-        <input
-          type="email"
-          placeholder="E-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: '8px' }}
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: '8px' }}
-        />
-        <button type="submit" style={{ padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }}>
-          {isLogin ? 'Entrar' : 'Cadastrar'}
-        </button>
-      </form>
-      <p style={{ marginTop: '15px', textAlign: 'center' }}>
-        {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}{' '}
-        <span
-          onClick={() => setIsLogin(!isLogin)}
-          style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          {isLogin ? 'Cadastre-se' : 'Faça Login'}
-        </span>
-      </p>
-    </div>
-  );
+  return <main className="auth panel">
+    <h1>{isLogin ? 'Entrar no sistema' : 'Criar conta'}</h1>
+    <p>Organize suas tarefas em um só lugar.</p>
+    {error && <p role="alert" className="error">{error}</p>}
+    {notice && <p role="status" className="notice">{notice}</p>}
+    <form onSubmit={handleSubmit}>
+      <fieldset disabled={busy}>
+        {!isLogin && <label>Nome completo<input value={name} onChange={e => setName(e.target.value)} maxLength={100} required autoComplete="name" /></label>}
+        <label>E-mail<input type="email" value={email} onChange={e => setEmail(e.target.value)} maxLength={254} required autoComplete="email" /></label>
+        <label>Senha<input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={isLogin ? undefined : 8} maxLength={72} required autoComplete={isLogin ? 'current-password' : 'new-password'} /></label>
+        {!isLogin && <small>Use pelo menos 8 caracteres. Limite de 72 bytes (acentos podem ocupar mais de um byte).</small>}
+        <button type="submit">{busy ? 'Aguarde…' : isLogin ? 'Entrar' : 'Cadastrar'}</button>
+      </fieldset>
+    </form>
+    <button className="secondary" disabled={busy} onClick={() => { setIsLogin(!isLogin); setError(''); setNotice(''); setPassword(''); }}>
+      {isLogin ? 'Criar uma conta' : 'Voltar ao login'}
+    </button>
+  </main>;
 }
