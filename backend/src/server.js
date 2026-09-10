@@ -21,4 +21,4 @@ mongoose.connect(process.env.MONGO_URI)
 app.get('/', (req, res) => res.send('API online!'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor na porta ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Servidor na porta ${PORT}`));
