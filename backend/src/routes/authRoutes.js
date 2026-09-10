@@ -1,11 +1,6 @@
-const express = require('express');
-const router = express.Router();
-const authController = require('../controllers/authController');
-
-// Rota para Cadastro de novo usuário
-router.post('/register', authController.register);
-
-// Rota para Login
-router.post('/login', authController.login);
-
+const router = require('express').Router();
+const controller = require('../controllers/authController');
+const validation = require('../middlewares/validation');
+router.post('/register', validation.auth(true), controller.register);
+router.post('/login', validation.auth(false), controller.login);
 module.exports = router;

@@ -1,20 +1,13 @@
 const jwt = require('jsonwebtoken');
-
 module.exports = (req, res, next) => {
-  // Lê o cabeçalho Authorization
-  const authHeader = req.header('Authorization');
-  if (!authHeader) return res.status(401).json({ error: 'Acesso negado. Token não fornecido.' });
-
-  // O formato esperado é "Bearer [TOKEN]"
-  const token = authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Acesso negado. Formato de token inválido.' });
-
+  const match = /^Bearer ([^\s]+)$/i.exec(req.get('Authorization') || '');
+  if (!match) return res.status(401).json({ error: 'Autenticação necessária.' });
   try {
-    // Valida o token e injeta o ID do usuário na requisição
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = verified;
+    const payload = jwt.verify(match[1], process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    if (typeof payload !== 'object' || !/^[a-f\d]{24}$/i.test(payload.id || '')) throw new Error('Invalid subject');
+    req.user = { id: payload.id };
     next();
-  } catch (err) {
-    res.status(400).json({ error: 'Token inválido.' });
+  } catch {
+    res.status(401).json({ error: 'Sessão inválida ou expirada. Faça login novamente.' });
   }
 };
